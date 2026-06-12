@@ -19,6 +19,8 @@ from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from routes import (  # noqa: E402
     mindmaps,
@@ -96,9 +98,18 @@ app.include_router(creative.router,    prefix="/api/mindmaps",           tags=["
 app.include_router(sessions.router,    prefix="/api/sessions",           tags=["sessions"])
 
 
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+INDEX_HTML = os.path.join(STATIC_DIR, "index.html")
+
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
 @app.get("/")
 async def root():
-    """Landing endpoint so the bare base URL is informative instead of a 404."""
+    """Serve the single-page mindmap UI (falls back to a JSON index if missing)."""
+    if os.path.isfile(INDEX_HTML):
+        return FileResponse(INDEX_HTML)
     return {
         "service": "MindMap AI Server",
         "version": app.version,
