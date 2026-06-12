@@ -43,7 +43,7 @@ def _gen(prompt: str, max_tokens: int = 4096, temperature: float = 0.3, json_mod
     cfg = types.GenerateContentConfig(
         max_output_tokens=max_tokens,
         temperature=temperature,
-        **({"+response_mime_type": "application/json"} if json_mode else {}),
+        **({"response_mime_type": "application/json"} if json_mode else {}),
     )
     return client().aio.models.generate_content(
         model=MODEL,
@@ -61,7 +61,7 @@ def _parse_json(raw: str):
     return val
 
 
-# ── 1. GENERATION ──────────────────────────────────────────────────────────────────────────────
+# ── 1. GENERATION ────────────────────────────────────────────────────
 
 async def generate_from_topic(topic: str, mode: str) -> dict:
     depth_map = {"overview": 2, "deep": 4, "brainstorm": 3}
@@ -72,12 +72,13 @@ async def generate_from_topic(topic: str, mode: str) -> dict:
         f"Build exactly {depth} levels of hierarchy. Be thorough."
     )
     prompt = (
-        f"Create a mindmap for the topic: \"{topic}\""
+        f"Create a mindmap for the topic: \"{topic}\"\n"
         f"{extra}\n"
         "Return ONLY valid JSON in this exact shape — no markdown fences:\n"
         '{"id":"root","label":"<central topic>","color":"#4A90D9","emoji":"🧠","children":['
         '{"id":"n1","label":"Branch 1","color":"#E74C3C","emoji":"💡","children":[...]}'
-        "]}")
+        "]}"
+    )
     t = time.monotonic()
     result = await _gen(prompt, max_tokens=6000, temperature=0.5)
     logger.info("generate_from_topic mode=%s %.2fs", mode, time.monotonic() - t)
@@ -114,7 +115,7 @@ async def generate_from_file(file_path: str, mime_type: str) -> dict:
     return _parse_json(result.text or "")
 
 
-# ── 2. NODE INTELLIGENCE ──────────────────────────────────────────────────────────────────────────
+# ── 2. NODE INTELLIGENCE ─────────────────────────────────────────────────
 
 async def expand_node(map_context: str, node_label: str, parent_label: str, mode: str, count: int) -> list[dict]:
     mode_instructions = {
@@ -276,7 +277,7 @@ async def suggest_regroup(map_json: str, central_topic: str) -> list[dict]:
     return parsed if isinstance(parsed, list) else []
 
 
-# ── 4. MAP ANALYSIS & CRITIQUE ───────────────────────────────────────────────────────────────────
+# ── 4. MAP ANALYSIS & CRITIQUE ──────────────────────────────────────────────────────────────
 
 async def completeness_check(map_json: str, central_topic: str) -> list[dict]:
     prompt = (
@@ -337,7 +338,7 @@ async def balance_analysis(map_json: str) -> list[dict]:
     return parsed if isinstance(parsed, list) else []
 
 
-# ── 5. CONTEXTUAL CHAT ──────────────────────────────────────────────────────────────────────────
+# ── 5. CONTEXTUAL CHAT ──────────────────────────────────────────────────────────────
 
 async def chat_stream(map_json: str, history, user_message: str):
     system_ctx = (
@@ -371,7 +372,7 @@ async def explain_node(node_label: str, map_context: str, central_topic: str, mo
     return result.text or ""
 
 
-# ── 6. STUDY & LEARNING ──────────────────────────────────────────────────────────────────────────
+# ── 6. STUDY & LEARNING ──────────────────────────────────────────────────────────────
 
 async def generate_flashcards(map_json: str, central_topic: str, style: str, count: int) -> list[dict]:
     style_instructions = {
@@ -438,7 +439,7 @@ async def teach_me_narrative(map_json: str, central_topic: str, branch_label: st
     return result.text or ""
 
 
-# ── 7. EXPORT & PRESENTATION ───────────────────────────────────────────────────────────────────
+# ── 7. EXPORT & PRESENTATION ───────────────────────────────────────────────────────────────
 
 async def export_outline(map_json: str, central_topic: str) -> str:
     prompt = (
@@ -493,7 +494,7 @@ async def export_action_plan(map_json: str, central_topic: str) -> list[dict]:
     return parsed if isinstance(parsed, list) else []
 
 
-# ── 8. REAL-TIME SUGGESTIONS ───────────────────────────────────────────────────────────────────
+# ── 8. REAL-TIME SUGGESTIONS ───────────────────────────────────────────────────────────────
 
 async def autocomplete_label(partial: str, parent_label: str, siblings: list[str]) -> list[str]:
     siblings_str = ", ".join(f'"{s}"' for s in siblings[:10])
@@ -539,7 +540,7 @@ async def emoji_suggestion(node_labels: list[str]) -> list[dict]:
     return parsed if isinstance(parsed, list) else []
 
 
-# ── 9. LANGUAGE & ACCESSIBILITY ──────────────────────────────────────────────────────────────────
+# ── 9. LANGUAGE & ACCESSIBILITY ───────────────────────────────────────────────────────────────
 
 async def translate_map(nodes: list[dict], target_language: str) -> list[dict]:
     nodes_str = json.dumps([{"id": n["id"], "label": n["label"]} for n in nodes])
@@ -588,7 +589,7 @@ async def accessibility_summary(map_json: str, central_topic: str) -> str:
     return result.text or ""
 
 
-# ── 10. CREATIVE & DIVERGENT THINKING ─────────────────────────────────────────────────────
+# ── 10. CREATIVE & DIVERGENT THINKING ──────────────────────────────────────────────────────
 
 async def what_if_branch(node_label: str, central_topic: str, map_context: str) -> list[dict]:
     prompt = (
