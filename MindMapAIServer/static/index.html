@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MindMapper</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a212b;
+    --panel-2: #222c38;
+    --border: #2d3a48;
+    --text: #e6edf3;
+    --muted: #8b98a8;
+    --accent: #4a90d9;
+    --accent-2: #27ae60;
+    --danger: #e74c3c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  #app { display: grid; grid-template-columns: 300px 1fr 340px; grid-template-rows: 52px 1fr; height: 100vh; }
+
+  header { grid-column: 1 / 4; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .spacer { flex: 1; }
+  .health { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--accent-2); }
+  .dot.bad { background: var(--danger); }
+  a.docs { color: var(--accent); text-decoration: none; font-size: 12px; }
+
+  aside { background: var(--panel); border-right: 1px solid var(--border); padding: 14px; overflow-y: auto; }
+  aside.right { border-right: none; border-left: 1px solid var(--border); }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 16px 0 8px; }
+  .section-title:first-child { margin-top: 0; }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 8px 10px; font-size: 13px; margin-bottom: 10px; font-family: inherit; }
+  textarea { resize: vertical; min-height: 60px; }
+  button { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 12px; font-size: 13px; cursor: pointer; font-weight: 500; }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.secondary { background: var(--panel-2); border: 1px solid var(--border); }
+  button.full { width: 100%; }
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .btn-grid button { padding: 7px 6px; font-size: 12px; }
+
+  main { position: relative; overflow: hidden; background:
+      radial-gradient(circle at 1px 1px, #1c2530 1px, transparent 0) 0 0 / 24px 24px var(--bg); }
+  #canvas { width: 100%; height: 100%; cursor: grab; }
+  #canvas.panning { cursor: grabbing; }
+  .node-rect { cursor: pointer; transition: filter .12s; }
+  .node-rect:hover { filter: brightness(1.18); }
+  .node-label { font-size: 13px; fill: #fff; pointer-events: none; font-weight: 500; }
+  .node-emoji { font-size: 15px; pointer-events: none; }
+  .edge { fill: none; stroke: var(--border); stroke-width: 2; }
+  .node-g.selected .node-rect { stroke: #fff; stroke-width: 2.5; }
+
+  .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); gap: 8px; text-align: center; padding: 20px; }
+  .empty h2 { color: var(--text); font-weight: 600; margin: 0; }
+
+  .selected-node { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-bottom: 10px; font-size: 13px; }
+  .selected-node .lbl { font-weight: 600; }
+  .selected-node .hint { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  .result { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12.5px; line-height: 1.5; margin-top: 10px; white-space: pre-wrap; max-height: 280px; overflow-y: auto; }
+  .result .item { padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .result .item:last-child { border-bottom: none; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+  .tabs button { flex: 1; background: var(--panel-2); border: 1px solid var(--border); }
+  .tabs button.active { background: var(--accent); border-color: var(--accent); }
+
+  #chat-log { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: calc(100vh - 230px); overflow-y: auto; }
+  .msg { padding: 8px 10px; border-radius: 8px; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+  .msg.user { background: var(--accent); align-self: flex-end; max-width: 85%; }
+  .msg.model { background: var(--panel-2); border: 1px solid var(--border); align-self: flex-start; max-width: 90%; }
+
+  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 50; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .toast.err { border-color: var(--danger); }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .maplist-item { padding: 7px 9px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; font-size: 12.5px; cursor: pointer; }
+  .maplist-item:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>🧠 MindMapper</h1>
+    <a class="docs" href="/docs" target="_blank">API docs ↗</a>
+    <div class="spacer"></div>
+    <div class="health"><span class="dot" id="health-dot"></span><span id="health-text">checking…</span></div>
+  </header>
+
+  <!-- LEFT PANEL -->
+  <aside class="left">
+    <div class="section-title">Generate a mindmap</div>
+    <label>Topic</label>
+    <input id="topic" placeholder="e.g. Quantum Computing" />
+    <label>Depth</label>
+    <select id="mode">
+      <option value="overview">Overview (shallow)</option>
+      <option value="deep">Deep (detailed)</option>
+      <option value="brainstorm">Brainstorm (wide)</option>
+    </select>
+    <button class="full" id="gen-btn" onclick="generateFromTopic()">Generate ✨</button>
+
+    <div class="section-title">From text</div>
+    <textarea id="paste-text" placeholder="Paste notes / an outline…"></textarea>
+    <button class="full secondary" onclick="generateFromText()">Build from text</button>
+
+    <div class="section-title">Demo</div>
+    <button class="full secondary" onclick="loadSample()">Load sample map</button>
+
+    <div class="section-title">Saved maps</div>
+    <div id="map-list"><div style="color:var(--muted);font-size:12px">None yet.</div></div>
+  </aside>
+
+  <!-- CENTER CANVAS -->
+  <main>
+    <svg id="canvas"><g id="viewport"></g></svg>
+    <div class="empty" id="empty-state">
+      <h2>No mindmap yet</h2>
+      <div>Generate one from a topic, or load the sample.</div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right">
+    <div class="tabs">
+      <button id="tab-actions-btn" class="active" onclick="switchTab('actions')">Actions</button>
+      <button id="tab-chat-btn" onclick="switchTab('chat')">Chat</button>
+    </div>
+
+    <div id="tab-actions">
+      <div id="no-selection" style="color:var(--muted);font-size:13px">Click a node to act on it.</div>
+      <div id="selection-panel" style="display:none">
+        <div class="selected-node">
+          <div class="lbl" id="sel-label"></div>
+          <div class="hint">Selected node</div>
+        </div>
+        <div class="btn-grid">
+          <button onclick="nodeAction('expand')">Expand</button>
+          <button onclick="nodeAction('explain')">Explain</button>
+          <button onclick="nodeAction('split')">Split</button>
+          <button onclick="nodeAction('what-if')">What if?</button>
+          <button onclick="nodeAction('devils-advocate')">Devil's advocate</button>
+          <button onclick="nodeAction('analogies')">Analogies</button>
+        </div>
+        <div class="section-title">Whole map</div>
+        <div class="btn-grid">
+          <button class="secondary" onclick="mapAction('critique')">Critique</button>
+          <button class="secondary" onclick="mapAction('completeness')">Gaps</button>
+          <button class="secondary" onclick="mapAction('summary-card')">Summary</button>
+          <button class="secondary" onclick="mapAction('connections')">Connections</button>
+        </div>
+        <div id="action-result"></div>
+      </div>
+    </div>
+
+    <div id="tab-chat" style="display:none">
+      <div id="chat-log"></div>
+      <textarea id="chat-input" placeholder="Ask about your mindmap…" style="min-height:48px"></textarea>
+      <button class="full" id="chat-send" onclick="sendChat()">Send</button>
+    </div>
+  </aside>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "";  // same origin
+let state = { mapId: null, sessionId: null, root: null, selected: null, positions: new Map() };
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+function toast(msg, isErr) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = "toast show" + (isErr ? " err" : "");
+  setTimeout(() => t.className = "toast", 2600);
+}
+async function api(path, opts) {
+  const res = await fetch(API + path, opts);
+  if (!res.ok) {
+    let detail = res.status + " " + res.statusText;
+    try { const j = await res.json(); if (j.detail) detail = j.detail; } catch {}
+    throw new Error(detail);
+  }
+  return res.status === 204 ? null : res.json();
+}
+function busy(btn, on) {
+  if (!btn) return;
+  if (on) { btn.dataset.txt = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
+  else { btn.innerHTML = btn.dataset.txt; btn.disabled = false; }
+}
+
+// ── health ─────────────────────────────────────────────────────────────────
+async function checkHealth() {
+  const dot = document.getElementById("health-dot"), txt = document.getElementById("health-text");
+  try {
+    const h = await api("/health");
+    const credOk = h.credentials === "configured";
+    dot.className = "dot " + (credOk ? "ok" : "bad");
+    txt.textContent = credOk ? "AI ready" : "no GCP credentials";
+    if (!credOk) txt.title = "Set GOOGLE_APPLICATION_CREDENTIALS to enable AI features";
+  } catch { dot.className = "dot bad"; txt.textContent = "server down"; }
+}
+
+// ── tree layout (left-to-right) ─────────────────────────────────────────────────
+const NODE_H = 34, V_GAP = 14, H_GAP = 70, NODE_PAD = 14;
+function measure(node) {
+  const label = (node.emoji ? node.emoji + " " : "") + (node.label || "");
+  node._w = Math.max(70, Math.min(240, label.length * 7.5 + NODE_PAD * 2));
+  node._label = label;
+}
+function layout(node, depth, cursor) {
+  measure(node);
+  node._x = depth * (200 + H_GAP);
+  const kids = node.children || [];
+  if (kids.length === 0) {
+    node._y = cursor.y; cursor.y += NODE_H + V_GAP;
+  } else {
+    kids.forEach(k => layout(k, depth + 1, cursor));
+    node._y = (kids[0]._y + kids[kids.length - 1]._y) / 2;
+  }
+}
+function collect(node, arr) { arr.push(node); (node.children || []).forEach(c => collect(c, arr)); }
+
+function render() {
+  const vp = document.getElementById("viewport");
+  vp.innerHTML = "";
+  if (!state.root) { document.getElementById("empty-state").style.display = "flex"; return; }
+  document.getElementById("empty-state").style.display = "none";
+
+  const cursor = { y: 0 };
+  layout(state.root, 0, cursor);
+  const nodes = []; collect(state.root, nodes);
+
+  // edges first
+  nodes.forEach(n => (n.children || []).forEach(c => {
+    const x1 = n._x + n._w, y1 = n._y + NODE_H / 2, x2 = c._x, y2 = c._y + NODE_H / 2;
+    const mx = (x1 + x2) / 2;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("class", "edge");
+    p.setAttribute("d", `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+    vp.appendChild(p);
+  }));
+  // nodes
+  nodes.forEach(n => {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", "node-g" + (state.selected === n ? " selected" : ""));
+    g.setAttribute("transform", `translate(${n._x},${n._y})`);
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("class", "node-rect");
+    rect.setAttribute("width", n._w); rect.setAttribute("height", NODE_H);
+    rect.setAttribute("rx", 8); rect.setAttribute("fill", n.color || "#4a90d9");
+    rect.addEventListener("click", e => { e.stopPropagation(); selectNode(n); });
+    const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    txt.setAttribute("class", "node-label");
+    txt.setAttribute("x", NODE_PAD); txt.setAttribute("y", NODE_H / 2 + 4.5);
+    txt.textContent = n._label.length > 30 ? n._label.slice(0, 29) + "…" : n._label;
+    g.appendChild(rect); g.appendChild(txt); vp.appendChild(g);
+  });
+  fitView(nodes);
+}
+
+// ── pan & zoom ────────────────────────────────────────────────────────────
+let view = { x: 40, y: 40, k: 1 };
+function applyView() {
+  document.getElementById("viewport").setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.k})`);
+}
+function fitView(nodes) {
+  const maxX = Math.max(...nodes.map(n => n._x + n._w));
+  const maxY = Math.max(...nodes.map(n => n._y + NODE_H));
+  const canvas = document.getElementById("canvas").getBoundingClientRect();
+  view.k = Math.min(1, (canvas.width - 80) / maxX, (canvas.height - 80) / Math.max(maxY, 1));
+  view.x = 40; view.y = Math.max(40, (canvas.height - maxY * view.k) / 2);
+  applyView();
+}
+(function setupPanZoom() {
+  const c = document.getElementById("canvas");
+  let dragging = false, sx, sy;
+  c.addEventListener("mousedown", e => { dragging = true; sx = e.clientX - view.x; sy = e.clientY - view.y; c.classList.add("panning"); });
+  window.addEventListener("mouseup", () => { dragging = false; c.classList.remove("panning"); });
+  window.addEventListener("mousemove", e => { if (dragging) { view.x = e.clientX - sx; view.y = e.clientY - sy; applyView(); } });
+  c.addEventListener("wheel", e => { e.preventDefault(); const f = e.deltaY < 0 ? 1.1 : 0.9; view.k = Math.max(0.2, Math.min(2.5, view.k * f)); applyView(); }, { passive: false });
+  c.addEventListener("click", () => selectNode(null));
+})();
+
+// ── selection ───────────────────────────────────────────────────────────────
+function findParent(node, target, parent) {
+  if (node === target) return parent;
+  for (const c of node.children || []) { const r = findParent(c, target, node); if (r !== undefined) return r; }
+  return undefined;
+}
+function selectNode(n) {
+  state.selected = n;
+  document.getElementById("no-selection").style.display = n ? "none" : "block";
+  document.getElementById("selection-panel").style.display = n ? "block" : "none";
+  if (n) document.getElementById("sel-label").textContent = (n.emoji ? n.emoji + " " : "") + n.label;
+  document.getElementById("action-result").innerHTML = "";
+  render();
+}
+
+// ── generation ────────────────────────────────────────────────────────────
+async function loadMap(data) {
+  state.mapId = data.mapId; state.sessionId = data.sessionId; state.root = data.nodes; state.selected = null;
+  selectNode(null); render(); refreshMapList();
+  document.getElementById("chat-log").innerHTML = "";
+}
+async function generateFromTopic() {
+  const topic = document.getElementById("topic").value.trim();
+  if (!topic) return toast("Enter a topic first", true);
+  const btn = document.getElementById("gen-btn"); busy(btn, true);
+  try {
+    const data = await api("/api/mindmaps/generate/from-topic", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic, mode: document.getElementById("mode").value }),
+    });
+    await loadMap(data); toast("Mindmap generated");
+  } catch (e) { toast("Generate failed: " + e.message, true); }
+  finally { busy(btn, false); }
+}
+async function generateFromText() {
+  const text = document.getElementById("paste-text").value.trim();
+  if (!text) return toast("Paste some text first", true);
+  try {
+    const data = await api("/api/mindmaps/generate/from-text", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    await loadMap(data); toast("Mindmap built from text");
+  } catch (e) { toast("Failed: " + e.message, true); }
+}
+
+// ── saved maps ──────────────────────────────────────────────────────────────
+async function refreshMapList() {
+  try {
+    const { mindmaps } = await api("/api/mindmaps");
+    const el = document.getElementById("map-list");
+    if (!mindmaps.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">None yet.</div>'; return; }
+    el.innerHTML = "";
+    mindmaps.forEach(m => {
+      const d = document.createElement("div");
+      d.className = "maplist-item"; d.textContent = m.title || m.central_topic;
+      d.onclick = () => openMap(m.id);
+      el.appendChild(d);
+    });
+  } catch {}
+}
+async function openMap(id) {
+  try {
+    const m = await api("/api/mindmaps/" + id);
+    await loadMap({ mapId: m.id, sessionId: m.session_id, nodes: m.nodes });
+    toast("Loaded: " + (m.title || m.central_topic));
+  } catch (e) { toast("Open failed: " + e.message, true); }
+}
+
+// ── node actions ─────────────────────────────────────────────────────────
+function showResult(html) { document.getElementById("action-result").innerHTML = '<div class="result">' + html + "</div>"; }
+function esc(s) { return (s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+
+async function nodeAction(kind) {
+  if (!state.selected) return;
+  const n = state.selected, btn = event.target; busy(btn, true);
+  const parent = findParent(state.root, n, null);
+  const parentLabel = parent ? parent.label : "";
+  try {
+    let r, html = "";
+    if (kind === "expand") {
+      r = await api(`/api/mindmaps/${state.mapId}/nodes/expand`, post({ nodeId: n.id || "x", nodeLabel: n.label, parentLabel, mode: "explore", count: 5 }));
+      (r.children || []).forEach((c, i) => { c.id = c.id || (n.id + "_e" + i); });
+      n.children = (n.children || []).concat(r.children || []); render();
+      html = `Added ${r.children.length} child node(s).`;
+    } else if (kind === "explain") {
+      r = await api(`/api/mindmaps/${state.mapId}/nodes/explain`, post({ nodeLabel: n.label, mode: "explain" }));
+      html = esc(r.explanation);
+    } else if (kind === "split") {
+      r = await api(`/api/mindmaps/${state.mapId}/nodes/split`, post({ nodeLabel: n.label, parentLabel }));
+      (r.splitInto || []).forEach((c, i) => { c.id = c.id || (n.id + "_s" + i); });
+      n.children = (n.children || []).concat(r.splitInto || []); render();
+      html = `Split into ${r.splitInto.length} node(s).`;
+    } else if (kind === "what-if") {
+      r = await api(`/api/mindmaps/${state.mapId}/what-if`, post({ nodeLabel: n.label }));
+      html = (r.scenarios || []).map(s => `<div class="item">${esc((s.emoji||"🔮")+" "+s.label)}</div>`).join("");
+    } else if (kind === "devils-advocate") {
+      r = await api(`/api/mindmaps/${state.mapId}/devils-advocate`, post({ nodeLabel: n.label }));
+      html = (r.counterpoints || []).map(s => `<div class="item">${esc((s.emoji||"⚡")+" "+s.label)}${s.note?'<br><span style="color:var(--muted)">'+esc(s.note)+'</span>':''}</div>`).join("");
+    } else if (kind === "analogies") {
+      r = await api(`/api/mindmaps/${state.mapId}/analogies`, post({ nodeLabel: n.label }));
+      html = (r.analogies || []).map(a => `<div class="item"><b>${esc(a.domain)}:</b> ${esc(a.analogy)}</div>`).join("");
+    }
+    showResult(html || "Done.");
+  } catch (e) { showResult('<span style="color:var(--danger)">' + esc(e.message) + "</span>"); }
+  finally { busy(btn, false); }
+}
+function post(body) { return { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }; }
+
+async function mapAction(kind) {
+  const btn = event.target; busy(btn, true);
+  try {
+    let html = "";
+    if (kind === "critique") {
+      const r = await api(`/api/mindmaps/${state.mapId}/critique`);
+      html = (r.feedback || []).map(f => `<div class="item"><b>${esc(f.severity||"")}</b> ${esc(f.issue)}<br><span style="color:var(--muted)">→ ${esc(f.suggestion)}</span></div>`).join("") || "No issues found.";
+    } else if (kind === "completeness") {
+      const r = await api(`/api/mindmaps/${state.mapId}/completeness`);
+      html = (r.missing || []).map(m => `<div class="item">[${m.importance}] ${esc(m.missing_topic)}<br><span style="color:var(--muted)">${esc(m.reason)}</span></div>`).join("") || "Looks complete.";
+    } else if (kind === "summary-card") {
+      const r = await api(`/api/mindmaps/${state.mapId}/summary-card`);
+      html = `<b>${esc(r.headline||"")}</b><br><br>Themes: ${esc((r.centralThemes||[]).join(", "))}<br>Complexity: ${esc(r.complexityLevel||"")}<br>Read: ~${esc(String(r.estimatedReadMinutes||"?"))} min`;
+    } else if (kind === "connections") {
+      const r = await api(`/api/mindmaps/${state.mapId}/connections`);
+      html = (r.connections || []).map(c => `<div class="item">${esc(c.from)} <i>${esc(c.relationship)}</i> ${esc(c.to)}</div>`).join("") || "No hidden connections found.";
+    }
+    showResult(html);
+  } catch (e) { showResult('<span style="color:var(--danger)">' + esc(e.message) + "</span>"); }
+  finally { busy(btn, false); }
+}
+
+// ── chat (SSE) ───────────────────────────────────────────────────────────────
+function switchTab(t) {
+  document.getElementById("tab-actions").style.display = t === "actions" ? "block" : "none";
+  document.getElementById("tab-chat").style.display = t === "chat" ? "block" : "none";
+  document.getElementById("tab-actions-btn").className = t === "actions" ? "active" : "";
+  document.getElementById("tab-chat-btn").className = t === "chat" ? "active" : "";
+}
+function addMsg(role, text) {
+  const log = document.getElementById("chat-log");
+  const d = document.createElement("div"); d.className = "msg " + role; d.textContent = text;
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+async function sendChat() {
+  if (!state.mapId) return toast("Generate a mindmap first", true);
+  const input = document.getElementById("chat-input"), text = input.value.trim();
+  if (!text) return;
+  input.value = ""; addMsg("user", text);
+  const modelEl = addMsg("model", "…");
+  try {
+    const res = await fetch(`/api/mindmaps/${state.mapId}/chat`, post({ message: text, sessionId: state.sessionId }));
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let acc = "", buf = "";
+    while (true) {
+      const { done, value } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split("\n\n"); buf = parts.pop();
+      for (const p of parts) {
+        const line = p.replace(/^data: /, "");
+        if (line === "[DONE]") continue;
+        if (line.startsWith("[ERROR]")) { modelEl.textContent = line; return; }
+        acc += line; modelEl.textContent = acc;
+        document.getElementById("chat-log").scrollTop = 1e9;
+      }
+    }
+    if (!acc) modelEl.textContent = "(no response)";
+  } catch (e) { modelEl.textContent = "Error: " + e.message; }
+}
+
+// ── sample map (no AI needed) ────────────────────────────────────────────────
+async function loadSample() {
+  const sample = {
+    id: "root", label: "Quantum Computing", color: "#4a90d9", emoji: "🧠",
+    children: [
+      { id: "n1", label: "Qubits", color: "#e74c3c", emoji: "⚛️", children: [
+        { id: "n1a", label: "Superposition", color: "#c0392b", emoji: "🌀" },
+        { id: "n1b", label: "Entanglement", color: "#c0392b", emoji: "🔗" } ] },
+      { id: "n2", label: "Algorithms", color: "#27ae60", emoji: "🧮", children: [
+        { id: "n2a", label: "Shor's", color: "#1e8449", emoji: "🔢" },
+        { id: "n2b", label: "Grover's", color: "#1e8449", emoji: "🔍" } ] },
+      { id: "n3", label: "Hardware", color: "#8e44ad", emoji: "🛠️", children: [
+        { id: "n3a", label: "Superconducting", color: "#6c3483", emoji: "❄️" },
+        { id: "n3b", label: "Trapped ions", color: "#6c3483", emoji: "⚡" } ] },
+      { id: "n4", label: "Challenges", color: "#e67e22", emoji: "⚠️", children: [
+        { id: "n4a", label: "Decoherence", color: "#ca6f1e", emoji: "📉" },
+        { id: "n4b", label: "Error correction", color: "#ca6f1e", emoji: "🩹" } ] },
+    ],
+  };
+  try {
+    // persist it so AI actions work too (if credentials present)
+    const created = await api("/api/mindmaps", post({ title: "Quantum Computing (sample)", centralTopic: "Quantum Computing", nodesJson: JSON.stringify(sample) }));
+    await api(`/api/mindmaps/${created.id}/nodes`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nodes: sample }) });
+    await loadMap({ mapId: created.id, sessionId: created.sessionId, nodes: sample });
+    toast("Sample loaded");
+  } catch (e) {
+    // fall back to view-only if server write fails
+    state.mapId = null; state.root = sample; selectNode(null); render();
+    toast("Sample loaded (view-only)");
+  }
+}
+
+// ── init ────────────────────────────────────────────────────────────────────
+checkHealth(); refreshMapList(); setInterval(checkHealth, 15000);
+document.getElementById("topic").addEventListener("keydown", e => { if (e.key === "Enter") generateFromTopic(); });
+document.getElementById("chat-input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); } });
+</script>
+</body>
+</html>
