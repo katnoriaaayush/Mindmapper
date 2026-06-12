@@ -96,6 +96,18 @@ app.include_router(creative.router,    prefix="/api/mindmaps",           tags=["
 app.include_router(sessions.router,    prefix="/api/sessions",           tags=["sessions"])
 
 
+@app.get("/")
+async def root():
+    """Landing endpoint so the bare base URL is informative instead of a 404."""
+    return {
+        "service": "MindMap AI Server",
+        "version": app.version,
+        "docs": "/docs",
+        "health": "/health",
+        "api": "/api/mindmaps",
+    }
+
+
 @app.get("/health")
 async def health():
     return {
