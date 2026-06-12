@@ -1,0 +1,132 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="mindmapper-arch" name="MindMapper Architecture">
+    <mxGraphModel dx="1100" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="MindMapper — Architecture &amp; Request Flow" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="16" width="1080" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Layer bands (background) ===== -->
+        <mxCell id="band_client" value="CLIENT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;align=left;fontStyle=2;fontColor=#666666;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1080" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="band_api" value="APPLICATION  (FastAPI · main.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;align=left;fontStyle=2;fontColor=#666666;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="1080" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="band_routes" value="API ROUTERS  (routes/*.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;align=left;fontStyle=2;fontColor=#666666;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="1080" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="band_services" value="CORE SERVICES" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;align=left;fontStyle=2;fontColor=#666666;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="1080" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="band_external" value="EXTERNAL / STORAGE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;align=left;fontStyle=2;fontColor=#666666;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="590" width="1080" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Client ===== -->
+        <mxCell id="browser" value="🖥️  Browser — Single-Page UI&#10;(static/index.html)&#10;&#10;Mindmap canvas (SVG) · Generate forms&#10;Node actions · Map analysis · Chat panel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="385" y="80" width="390" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ===== FastAPI app ===== -->
+        <mxCell id="fastapi" value="FastAPI app  (main.py)&#10;&#10;CORS · HTTP logging middleware&#10;StaticFiles /static · GET / (UI) · /health · /docs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="360" y="212" width="440" height="76" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Routers ===== -->
+        <mxCell id="r_gen" value="Generation&#10;(generate.py)&#10;/generate/from-topic·text·url·file" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="350" width="230" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="r_ai" value="Node &amp; Map AI&#10;(nodes · analysis · creative&#10;language · study · export)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="320" y="350" width="230" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="r_chat" value="Chat — SSE streaming&#10;(chat.py)&#10;POST /{id}/chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="580" y="350" width="230" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="r_crud" value="CRUD &amp; Sessions&#10;(mindmaps · sessions&#10;suggestions)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="840" y="350" width="220" height="76" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Core services ===== -->
+        <mxCell id="gemini" value="gemini.py — Vertex AI wrapper&#10;&#10;_gen() · prompt functions&#10;JSON parsing · lazy client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="300" y="482" width="320" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="db" value="db.py — SQLite persistence&#10;&#10;mindmaps · ai_cache · flashcards&#10;quiz · chat_messages · uploads" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="700" y="482" width="320" height="76" as="geometry" />
+        </mxCell>
+
+        <!-- ===== External / storage ===== -->
+        <mxCell id="creds" value="🔑 GCP Service Account&#10;ADC via&#10;GOOGLE_APPLICATION_CREDENTIALS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="616" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="vertex" value="☁️  Vertex AI — Gemini&#10;(gemini-2.0-flash-001)&#10;generate_content · streaming" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="320" y="616" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlite" value="🗜️  SQLite file&#10;mindmap.db (WAL)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="760" y="610" width="200" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Edges ===== -->
+        <mxCell id="e_browser_api" value="HTTPS · REST + SSE  (:3000)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;startArrow=open;fontSize=11;" edge="1" parent="1" source="browser" target="fastapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_api_gen" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="fastapi" target="r_gen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_api_ai" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="fastapi" target="r_ai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_api_chat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="fastapi" target="r_chat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_api_crud" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="fastapi" target="r_crud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_gen_gemini" value="prompt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=10;" edge="1" parent="1" source="r_gen" target="gemini">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ai_gemini" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="r_ai" target="gemini">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_chat_gemini" value="stream" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=10;" edge="1" parent="1" source="r_chat" target="gemini">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_gen_db" value="save map" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontSize=10;" edge="1" parent="1" source="r_gen" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ai_db" value="cache" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontSize=10;" edge="1" parent="1" source="r_ai" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_chat_db" value="history" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontSize=10;" edge="1" parent="1" source="r_chat" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_crud_db" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;" edge="1" parent="1" source="r_crud" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_gemini_vertex" value="google-genai SDK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=11;" edge="1" parent="1" source="gemini" target="vertex">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_creds_gemini" value="auth (ADC)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontSize=10;" edge="1" parent="1" source="creds" target="gemini">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_db_sqlite" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="1" source="db" target="sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend:  solid = request/data flow   ·   dashed = persistence / auth   ·   SSE = Server-Sent Events token stream" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="730" width="900" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
