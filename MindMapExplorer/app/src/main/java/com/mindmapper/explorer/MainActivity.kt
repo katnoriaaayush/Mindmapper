@@ -1,10 +1,15 @@
 package com.mindmapper.explorer
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -27,6 +32,10 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var loadFailed = false
+
+    private companion object {
+        const val TAG = "MindMapperWeb"
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,12 +77,24 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun configureWebView() {
+        // Remote-debuggable from Chrome (chrome://inspect) in debug builds — the
+        // fastest way to see JS errors or a blank render behind a "black screen".
+        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
+
+        // Match the app background so a slow first paint never flashes solid black.
+        binding.webview.setBackgroundColor(Color.parseColor("#0F1419"))
+
+        // Some emulator GPU configs composite the hardware WebView layer as solid
+        // black while Chrome renders fine. If a cold-booted/Hardware-GLES emulator
+        // still shows black, uncomment the next line to force software rendering:
+        // binding.webview.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
+
         with(binding.webview.settings) {
             javaScriptEnabled = true
             domStorageEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             useWideViewPort = true
-            loadWithOverviewMode = false
+            loadWithOverviewMode = true
             mediaPlaybackRequiresUserGesture = false
             // Honour the page's own viewport; do not let the WebView add its own zoom.
             setSupportZoom(false)
@@ -98,11 +119,28 @@ class MainActivity : AppCompatActivity() {
             ) {
                 // Only surface failures for the main document, not sub-resources.
                 if (request?.isForMainFrame == true) {
+                    Log.e(TAG, "load error for ${request.url}: ${error?.errorCode} ${error?.description}")
                     loadFailed = true
                     binding.progress.isVisible = false
                     binding.swipe.isRefreshing = false
                     showError(true)
                 }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?
+            ) {
+                Log.w(TAG, "HTTP ${errorResponse?.statusCode} for ${request?.url}")
+            }
+        }
+
+        // Surface page console output (incl. JS errors) into Logcat under TAG.
+        binding.webview.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(m: ConsoleMessage): Boolean {
+                Log.d(TAG, "console: ${m.message()} @ ${m.sourceId()}:${m.lineNumber()}")
+                return true
             }
         }
     }

@@ -53,6 +53,40 @@ buildConfigField("String", "APP_URL", "\"http://10.0.2.2:3000/?display=board\"")
 - **Deployed backend:** point at the `https://` URL and remove the cleartext
   exemption in `network_security_config.xml`.
 
+## Troubleshooting
+
+### Black screen in the app, but the URL works in Chrome
+
+The page and network are fine (Chrome proves it), so it's almost always one of two
+things. Diagnose first, then fix:
+
+**1. See what's actually happening (2 minutes).**
+The app enables WebView remote debugging in debug builds.
+- Run the debug app, then on your computer open **`chrome://inspect`** in desktop
+  Chrome → find the device's WebView → **inspect**. You'll see the live DOM and the
+  JS console.
+- Or watch **Logcat** filtered by tag `MindMapperWeb` — console messages, JS errors,
+  and load failures are logged there.
+
+If the DOM is present but the screen is black → it's a **render/GPU** issue (case A).
+If you see a **JS error** or the DOM is empty → case B.
+
+**A. Emulator GPU compositing (most common).** The Android System WebView composites
+its hardware layer as solid black on some emulator graphics settings, even though the
+Chrome app renders fine. Fixes, in order:
+- **Cold boot** the emulator (Device Manager → ▾ → *Cold Boot Now*).
+- Emulator **Settings → Advanced → OpenGL ES renderer → "Desktop native OpenGL"**
+  (or switch *Graphics* to **Hardware**), then restart the emulator.
+- Use a **Google APIs** system image (has an up-to-date WebView).
+- Update **Android System WebView** + Chrome in the emulator via the Play Store.
+- Last resort (guaranteed paint, lower perf): uncomment the
+  `setLayerType(... LAYER_TYPE_SOFTWARE ...)` line in `MainActivity.configureWebView()`.
+
+**B. Reaching the wrong host.** `10.0.2.2` is the host loopback **from the Android
+emulator only**. On a physical device it won't resolve — point `APP_URL` at the host's
+LAN IP (and add it to `network_security_config.xml`). If Chrome worked because you
+typed a different address there, that's the tell.
+
 ## Scope
 
 This is the v1 shell: **generate · view · chat**, which the embedded web UI
