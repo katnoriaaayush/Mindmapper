@@ -19,7 +19,7 @@ from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.responses import FileResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from routes import (  # noqa: E402
@@ -117,6 +117,15 @@ async def root():
         "health": "/health",
         "api": "/api/mindmaps",
     }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Serve a favicon so browsers/WebViews don't 404 on the automatic request."""
+    icon = os.path.join(STATIC_DIR, "favicon.svg")
+    if os.path.isfile(icon):
+        return FileResponse(icon, media_type="image/svg+xml")
+    return Response(status_code=204)
 
 
 @app.get("/health")
