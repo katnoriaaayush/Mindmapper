@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP is allowed only for the local development server reached from
+  the emulator (10.0.2.2) or a device on the same machine/LAN. Everything else
+  stays HTTPS-only. Tighten or remove this when pointing at a deployed backend.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

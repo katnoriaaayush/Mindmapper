@@ -47,7 +47,7 @@
 
   main { position: relative; overflow: hidden; background:
       radial-gradient(circle at 1px 1px, #1c2530 1px, transparent 0) 0 0 / 24px 24px var(--bg); }
-  #canvas { width: 100%; height: 100%; cursor: grab; }
+  #canvas { width: 100%; height: 100%; cursor: grab; touch-action: none; }
   #canvas.panning { cursor: grabbing; }
   .node-rect { cursor: pointer; transition: filter .12s; }
   .node-rect:hover { filter: brightness(1.18); }
@@ -83,6 +83,30 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .maplist-item { padding: 7px 9px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; font-size: 12.5px; cursor: pointer; }
   .maplist-item:hover { border-color: var(--accent); }
+
+  /* ===== Large-format interactive-board skin  (?display=board) ===== */
+  /* Scaled-up type, controls, and overscan-safe margins for a 1280×720dp / 75" touch display. */
+  .display-board { font-size: 17px; }
+  .display-board #app { grid-template-columns: 340px 1fr 380px; grid-template-rows: 64px 1fr;
+    width: calc(100vw - 3vw); height: calc(100vh - 4vh); margin: 2vh 1.5vw;
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .display-board header { padding: 0 22px; }
+  .display-board header h1 { font-size: 23px; }
+  .display-board header .health, .display-board a.docs { font-size: 15px; }
+  .display-board aside { padding: 20px; }
+  .display-board .section-title { font-size: 14px; margin: 22px 0 10px; }
+  .display-board label { font-size: 15px; }
+  .display-board input, .display-board select, .display-board textarea { font-size: 17px; padding: 13px 15px; border-radius: 8px; }
+  .display-board button { font-size: 17px; padding: 14px 18px; border-radius: 8px; }
+  .display-board .btn-grid { gap: 10px; }
+  .display-board .btn-grid button { font-size: 15px; padding: 13px 10px; }
+  .display-board .selected-node { font-size: 16px; padding: 14px; }
+  .display-board .result { font-size: 16px; padding: 14px; max-height: 42vh; }
+  .display-board .msg { font-size: 16px; padding: 11px 14px; }
+  .display-board .maplist-item { font-size: 16px; padding: 12px 14px; }
+  .display-board .node-label { font-size: 18px; }
+  .display-board .empty h2 { font-size: 26px; }
+  .display-board .empty { font-size: 17px; }
 </style>
 </head>
 <body>
@@ -207,15 +231,17 @@ async function checkHealth() {
 }
 
 // ── tree layout (left-to-right) ─────────────────────────────────────────────────
-const NODE_H = 34, V_GAP = 14, H_GAP = 70, NODE_PAD = 14;
+const BOARD = new URLSearchParams(location.search).get("display") === "board";
+let NODE_H = BOARD ? 48 : 34, V_GAP = BOARD ? 22 : 14, H_GAP = BOARD ? 92 : 70, NODE_PAD = BOARD ? 20 : 14;
+const CHAR_W = BOARD ? 10.5 : 7.5, MIN_W = BOARD ? 110 : 70, MAX_W = BOARD ? 320 : 240, COL_W = BOARD ? 260 : 200;
 function measure(node) {
   const label = (node.emoji ? node.emoji + " " : "") + (node.label || "");
-  node._w = Math.max(70, Math.min(240, label.length * 7.5 + NODE_PAD * 2));
+  node._w = Math.max(MIN_W, Math.min(MAX_W, label.length * CHAR_W + NODE_PAD * 2));
   node._label = label;
 }
 function layout(node, depth, cursor) {
   measure(node);
-  node._x = depth * (200 + H_GAP);
+  node._x = depth * (COL_W + H_GAP);
   const kids = node.children || [];
   if (kids.length === 0) {
     node._y = cursor.y; cursor.y += NODE_H + V_GAP;
@@ -257,7 +283,7 @@ function render() {
     rect.addEventListener("click", e => { e.stopPropagation(); selectNode(n); });
     const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
     txt.setAttribute("class", "node-label");
-    txt.setAttribute("x", NODE_PAD); txt.setAttribute("y", NODE_H / 2 + 4.5);
+    txt.setAttribute("x", NODE_PAD); txt.setAttribute("y", NODE_H / 2 + (BOARD ? 6.5 : 4.5));
     txt.textContent = n._label.length > 30 ? n._label.slice(0, 29) + "…" : n._label;
     g.appendChild(rect); g.appendChild(txt); vp.appendChild(g);
   });
@@ -284,6 +310,26 @@ function fitView(nodes) {
   window.addEventListener("mouseup", () => { dragging = false; c.classList.remove("panning"); });
   window.addEventListener("mousemove", e => { if (dragging) { view.x = e.clientX - sx; view.y = e.clientY - sy; applyView(); } });
   c.addEventListener("wheel", e => { e.preventDefault(); const f = e.deltaY < 0 ? 1.1 : 0.9; view.k = Math.max(0.2, Math.min(2.5, view.k * f)); applyView(); }, { passive: false });
+
+  // Touch: one-finger drag-to-pan, two-finger pinch-to-zoom (interactive board).
+  // No preventDefault on touchstart, so taps still synthesise a click → node selection works.
+  let touch = null;
+  const tdist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  c.addEventListener("touchstart", e => {
+    if (e.touches.length === 1) touch = { mode: "pan", sx: e.touches[0].clientX - view.x, sy: e.touches[0].clientY - view.y };
+    else if (e.touches.length === 2) touch = { mode: "pinch", d0: tdist(e.touches) || 1, k0: view.k };
+  }, { passive: true });
+  c.addEventListener("touchmove", e => {
+    if (!touch) return;
+    if (touch.mode === "pan" && e.touches.length === 1) {
+      view.x = e.touches[0].clientX - touch.sx; view.y = e.touches[0].clientY - touch.sy; applyView();
+    } else if (touch.mode === "pinch" && e.touches.length === 2) {
+      view.k = Math.max(0.2, Math.min(2.5, touch.k0 * tdist(e.touches) / touch.d0)); applyView();
+    }
+    e.preventDefault();
+  }, { passive: false });
+  c.addEventListener("touchend", e => { if (e.touches.length === 0) touch = null; });
+
   c.addEventListener("click", () => selectNode(null));
 })();
 
@@ -489,6 +535,7 @@ async function loadSample() {
 }
 
 // ── init ────────────────────────────────────────────────────────────────────
+if (BOARD) document.body.classList.add("display-board");
 checkHealth(); refreshMapList(); setInterval(checkHealth, 15000);
 document.getElementById("topic").addEventListener("keydown", e => { if (e.key === "Enter") generateFromTopic(); });
 document.getElementById("chat-input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); } });

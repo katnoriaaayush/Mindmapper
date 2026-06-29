@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MindMapper</string>
+    <string name="error_title">Can\'t reach the MindMapper server</string>
+    <string name="error_body">Make sure the MindMapAIServer is running and reachable at the configured address (10.0.2.2:3000 from the emulator).</string>
+    <string name="retry">Retry</string>
+</resources>
