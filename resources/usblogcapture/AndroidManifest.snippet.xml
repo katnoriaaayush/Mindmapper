@@ -1,0 +1,29 @@
+<!-- Add inside your existing <manifest> / <application> tags. Package name below
+     assumes com.example.usblogcapture — update to match wherever you place this
+     module inside your actual app namespace. -->
+
+<uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
+<uses-permission android:name="android.permission.MANAGE_USERS" />
+
+<permission
+    android:name="com.example.usblogcapture.permission.BIND_HANDOFF"
+    android:protectionLevel="signature" />
+
+<application>
+
+    <!-- Owner-profile orchestrator. Long-running; start as a foreground service
+         from wherever you currently start your singleUser log capture service. -->
+    <service
+        android:name="com.example.usblogcapture.UsbLogCaptureService"
+        android:exported="false"
+        android:foregroundServiceType="dataSync" />
+
+    <!-- Per-profile handoff. Must run in every profile (do not pin android:process
+         to the owner), and must be reachable via bindServiceAsUser — hence exported
+         but gated behind a signature permission so only your own app can bind. -->
+    <service
+        android:name="com.example.usblogcapture.handoff.LogFileHandoffService"
+        android:exported="true"
+        android:permission="com.example.usblogcapture.permission.BIND_HANDOFF" />
+
+</application>
